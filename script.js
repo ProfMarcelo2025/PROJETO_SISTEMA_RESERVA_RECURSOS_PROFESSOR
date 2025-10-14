@@ -217,5 +217,88 @@ formPesquisa?.addEventListener('submit',(e)=>{
     atualizarMenuAtivo();
 });
 
+//4.3 - SOLICITAR RESERVA
+//aplica RN simulada e registra no histórico
+formSolicitar?.addEventListener('submit',(e)=>{
+    e.preventDefault();
+
+    if(!usuarioAtual){
+        mostrarToast('Faça login antes de solicitar','warn');
+        location.hash="#secLogin";
+        atualizarMenuAtivo();
+        return;
+    }
+
+    if(!ultimoFiltroPesquisa){
+        mostrarToast('Pesquise a disponibilidade antes de solicitar','warn');
+        location.hash = '#secPesquisa';
+        atualizarMenuAtivo();
+        return;
+    }
+
+    const {justificativa} = dadosDoForm(formSolicitar);
+    if(!justificativa){
+        mostrarToast('Descreva a justificativa','warn');
+        return;
+    }
+
+    //RN4 - se login contém 'prof', aprova automaticamente
+    const status = usuarioAtual.professor ?'aprovada':'pendente';
+
+    const nova = {
+        ...ultimoFiltroPesquisa,
+        justificativa,
+        status,
+        autor:usuarioAtual.login
+    };
+
+    reservas.push(nova);
+    renderItemReserva(nova);
+
+    mostrarToast(status==='aprovada' 
+        ?'Reserva aprovada automaticamente'
+        :'Reserva enviada para análise');
+    
+    formSolicitar.reset();
+    location.hash ='#secHistorico';
+    atualizarMenuAtivo();
+});
+
+//4.4 - RENDERIZAÇÃO DO HISTÓRICO
+//lista simples (sem <template> para que não quebre o HTML)
+function renderItemReserva({recurso,data,hora,justificativa,status}){
+    if(!listaReservas) return;
+
+    const li = document.createElement('li');
+    const quando = new Date(`${data}T${hora}`).toLocaleString('pt-br');
+
+    li.innerHTML=`
+     <span><strong>${recurso}</strong> - ${quando}</span>
+     <span>${status==='aprovada' 
+        ? 'Aprovada': status ==='cancelada' 
+        ? 'Cancelada': 'Pendente'}</span>
+    `;
+
+    //clique para cancelar
+    li.addEventListener('click',()=>{
+        //impedir recancelamento
+        if(li.dataset.status ==='cancelada') return;
+        li.dataset.status ='cancelada';
+        li.lastElementChild.textContent = 'Cancelada';
+        mostrarToast('Reserva cancelada','warn');
+    });
+
+    listaReservas.appendChild(li);
+}
+
+/*================================================
+  5) AJUSTES FINAIS DE ARRANQUE
+  ------------------------------------------------
+  Por quê? Garantir que link ativo apareça já carga inicial
+  =================================================*/
+document.addEventListener('DOMContentLoaded',()=>{
+    atualizarMenuAtivo();
+});
+
 
 
